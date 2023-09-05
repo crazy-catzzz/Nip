@@ -10,6 +10,7 @@
 enum class TokenType {
   RETURN,
   INT_LIT,
+  STRING_LIT,
   SEMI
 };
 struct Token {
@@ -21,6 +22,9 @@ struct Token {
 std::string readFile(char* fname);
 std::vector<Token> tokenize(std::string content);
 bool is_number(std::string str);
+std::string remove_quotes(std::string str);
+bool is_str_literal(std::string str);
+
 
 int main(int argc, char** argv) {
   
@@ -45,6 +49,8 @@ int main(int argc, char** argv) {
       case TokenType::INT_LIT:
         std::cout << "INT_LIT " << tv.at(i).value.value() << std::endl;
         break;
+      case TokenType::STRING_LIT:
+        std::cout << "STRING_LIT " << tv.at(i).value.value() << std::endl;
     }
   }
 
@@ -67,28 +73,30 @@ std::string readFile(char* fname) {
 
 // Tokenize contents
 std::vector<Token> tokenize(std::string content) {
-  std::vector<Token> token_list {};
+  std::vector<Token> token_list;
 
   // Iterate for each character
   for (int i = 0; i < content.length(); i++) {
     char current_character = content.at(i);
-    std::string char_buffer {};
+    std::string char_buffer;
 
-    if (current_character == ';') {
+    if (current_character == ';') { // Include semicolons
       char_buffer.push_back(current_character);
       i++;
     }
-    while (std::isalnum(current_character)) {
+    while (std::isalnum(current_character) || current_character == '"') { // Only get alphanumeric characters (include quotes)
       char_buffer.push_back(current_character);
       i++;
       current_character = content.at(i);
     }
-    if (current_character == ';') i--;
-    
+    if (current_character == ';') i--;  // Include semicolons
+    if (current_character == '"') char_buffer.push_back(current_character); // Include quotes
+
     // Convert string to tokens
     if (char_buffer == "return") token_list.push_back({TokenType::RETURN});
     if (char_buffer == ";") token_list.push_back({TokenType::SEMI});
     if (is_number(char_buffer)) token_list.push_back({TokenType::INT_LIT, char_buffer});
+    if (is_str_literal(char_buffer)) token_list.push_back({TokenType::STRING_LIT, remove_quotes(char_buffer)});
   }
 
   return token_list;
@@ -100,4 +108,22 @@ bool is_number(std::string str) {
 
   for (int i = 0; i < str.length(); i++) if (!std::isdigit(str.at(i))) return false;
   return true;
+}
+
+// Remove quotes from string literals
+std::string remove_quotes(std::string str) {
+  std::string ret;
+
+  for (char c : str) {
+    if (std::isalnum(c)) ret.push_back(c);  // Only get alphanumeric characters
+  }
+
+  return ret;
+}
+
+// Check if string is a string literal
+bool is_str_literal(std::string str) {
+  if (str.length() == 0) return false;
+
+  return str.at(0) == '"' && str.at(str.length() - 1) == '"';
 }
